@@ -28,11 +28,16 @@ client.on('messageCreate', async (message) => {
         message.reply('pong');
     }
 
-    if(message.content == '/log') {
+    if (message.content == '/info') {
+    }
+
+    if(message.content.replaceAll(' ', '') == '/대화분석') {
         try {
             let allMessages = {};
             let lastMessageId = null;
             
+            let count = 0;
+
             while (true) {
                 const options = { limit: 100 };
                 if (lastMessageId) {
@@ -40,17 +45,26 @@ client.on('messageCreate', async (message) => {
                 }
                 const messages = await message.channel.messages.fetch(options);
                 
-                if (messages.size == 0) break; // 더 이상 불러올 메시지 없음.
                 
+                if (messages.size == 0) break; // 더 이상 불러올 메시지 없음.
+
+                // API 입력 토큰을 위해 최근 메시지 300개 미만 불러오기...
+                if (count >= 200 ) {
+                    console.log("채팅내역 200개 넘어감");
+                    break; 
+                }
+                
+                count+= message.size;
+
                 messages.forEach(msg => {
                     if (!msg.content.startsWith("/") && !msg.author.bot && msg.type === 0 && msg.content.length  > 0) {
-                        let userName = msg.author.username;
+                        let displayName = message.member?.displayName || message.author.username;
                         let content = msg.content;
 
-                        if (allMessages[userName] == undefined) 
-                            allMessages[userName] = [];
+                        if (allMessages[displayName] == undefined) 
+                            allMessages[displayName] = [];
                         
-                        allMessages[userName].push(content);
+                        allMessages[displayName].push(content);
                     }
                 })
 
@@ -75,7 +89,7 @@ client.on('messageCreate', async (message) => {
             console.log("Gemini API 호출");
             const resultOfGemini = await getResponse(resultString);
 
-            await message.channel.send(resultOfGemini);
+            await message.channel.send(resultOfGemini == null ? "Gemini API 호출에 실패하였습니다." : resultOfGemini);
 
         } catch (err) {
             console.log("에러 발생: ", err);
